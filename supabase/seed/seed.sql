@@ -1,0 +1,22 @@
+-- Seed Would You Rather challenges for development/testing
+insert into public.challenges (option_a, option_b, category, difficulty) values
+  ('Always be 10 minutes late', 'Always be 20 minutes early', 'lifestyle', 1),
+  ('Only eat pizza forever', 'Only eat tacos forever', 'food', 1),
+  ('Travel to the past', 'Travel to the future', 'hypothetical', 2),
+  ('Have unlimited money', 'Have unlimited time', 'hypothetical', 3),
+  ('Never use social media again', 'Never watch TV/movies again', 'entertainment', 2),
+  ('Live in a treehouse', 'Live in a houseboat', 'lifestyle', 1),
+  ('Always speak your mind', 'Never speak again', 'relationships', 4),
+  ('Be famous but hated', 'Be unknown but loved', 'career', 3),
+  ('Have a rewind button for life', 'Have a pause button for life', 'hypothetical', 3),
+  ('Only listen to one song forever', 'Never listen to music again', 'entertainment', 4),
+  ('Be able to fly', 'Be able to read minds', 'hypothetical', 2),
+  ('Live without internet', 'Live without AC/heating', 'lifestyle', 3),
+  ('Always feel too hot', 'Always feel too cold', 'silly', 1),
+  ('Have a personal chef', 'Have a personal trainer', 'lifestyle', 2),
+  ('Explore deep space', 'Explore the deep ocean', 'travel', 2),
+  ('Be the funniest person in the room', 'Be the smartest person in the room', 'relationships', 3),
+  ('Win the lottery', 'Live twice as long', 'hypothetical', 4),
+  ('Never age physically', 'Never age mentally', 'hypothetical', 5),
+  ('Give up your phone', 'Give up your bed', 'lifestyle', 3),
+  ('Always know when someone is lying', 'Always get away with lying', 'relationships', 4);

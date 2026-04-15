@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../features/home/home_screen.dart';
 import '../features/game/game_screen.dart';
+import '../features/multiplayer/waiting_room_screen.dart';
+import '../features/multiplayer/multiplayer_game_screen.dart';
+import '../features/multiplayer/challenge_results_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -18,6 +21,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/game',
         name: 'game',
         builder: (context, state) => const GameScreen(),
+      ),
+      GoRoute(
+        path: '/waiting-room',
+        name: 'waiting-room',
+        builder: (context, state) => const WaitingRoomScreen(),
+      ),
+      GoRoute(
+        path: '/multiplayer-game',
+        name: 'multiplayer-game',
+        builder: (context, state) => const MultiplayerGameScreen(),
+      ),
+      GoRoute(
+        path: '/challenge-results',
+        name: 'challenge-results',
+        builder: (context, state) => const ChallengeResultsScreen(),
+      ),
+      GoRoute(
+        path: '/join/:code',
+        name: 'join',
+        redirect: (context, state) {
+          return '/waiting-room?invite=${state.pathParameters['code']}';
+        },
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

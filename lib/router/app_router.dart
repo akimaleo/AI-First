@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../features/home/home_screen.dart';
 import '../features/game/game_screen.dart';
+import '../features/game/solo_results_screen.dart';
 import '../features/multiplayer/waiting_room_screen.dart';
 import '../features/multiplayer/multiplayer_game_screen.dart';
 import '../features/multiplayer/challenge_results_screen.dart';
@@ -21,6 +22,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/game',
         name: 'game',
         builder: (context, state) => const GameScreen(),
+      ),
+      GoRoute(
+        path: '/solo-results',
+        name: 'solo-results',
+        builder: (context, state) => const SoloResultsScreen(),
       ),
       GoRoute(
         path: '/waiting-room',

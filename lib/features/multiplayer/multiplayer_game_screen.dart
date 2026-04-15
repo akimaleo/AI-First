@@ -3,16 +3,38 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../providers/multiplayer_provider.dart';
+import '../../shared/widgets/countdown_timer.dart';
 
-class MultiplayerGameScreen extends ConsumerWidget {
+class MultiplayerGameScreen extends ConsumerStatefulWidget {
   const MultiplayerGameScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MultiplayerGameScreen> createState() =>
+      _MultiplayerGameScreenState();
+}
+
+class _MultiplayerGameScreenState extends ConsumerState<MultiplayerGameScreen> {
+  int _timerKey = 0;
+  int? _lastRound;
+
+  void _onTimerExpired() {
+    final mp = ref.read(multiplayerProvider);
+    if (!mp.hasAnsweredCurrentRound && mp.phase == MultiplayerPhase.playing) {
+      ref.read(multiplayerProvider.notifier).submitAnswer('a');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final mp = ref.watch(multiplayerProvider);
     final theme = Theme.of(context);
     final session = mp.session;
     final challenge = mp.currentChallenge;
+
+    if (session != null && session.currentRound != _lastRound) {
+      _lastRound = session.currentRound;
+      _timerKey++;
+    }
 
     ref.listen(multiplayerProvider, (prev, next) {
       if (next.phase == MultiplayerPhase.completed) {
@@ -65,7 +87,14 @@ class MultiplayerGameScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 16),
+              if (!mp.hasAnsweredCurrentRound)
+                CountdownTimer(
+                  key: ValueKey('mp-timer-$_timerKey'),
+                  durationSeconds: 30,
+                  onExpired: _onTimerExpired,
+                ),
+              const SizedBox(height: 16),
 
               // Opponent status
               if (mp.hasAnsweredCurrentRound && !mp.opponentAnsweredCurrentRound)

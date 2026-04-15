@@ -87,7 +87,7 @@ class SupabaseService {
   }
 
   Future<void> startSession(String sessionId) async {
-    final challenges = await _getRandomChallenges(5);
+    final challenges = await getRandomChallenges(5);
 
     await _client.from('sessions').update({
       'status': 'active',
@@ -104,7 +104,50 @@ class SupabaseService {
     }
   }
 
-  Future<List<Challenge>> _getRandomChallenges(int count) async {
+  Future<GameSession> createSoloSession({int totalRounds = 10}) async {
+    final userId = currentUserId;
+    if (userId == null) throw Exception('Not authenticated');
+
+    final response = await _client.from('sessions').insert({
+      'host_id': userId,
+      'mode': 'solo',
+      'status': 'active',
+      'max_players': 1,
+      'total_rounds': totalRounds,
+      'current_round': 1,
+      'started_at': DateTime.now().toUtc().toIso8601String(),
+    }).select().single();
+
+    await _client.from('session_participants').insert({
+      'session_id': response['id'],
+      'user_id': userId,
+      'is_ready': true,
+    });
+
+    return GameSession.fromJson(response);
+  }
+
+  Future<String> createSoloRound({
+    required String sessionId,
+    required String challengeId,
+    required int roundNumber,
+  }) async {
+    final response = await _client.from('session_rounds').insert({
+      'session_id': sessionId,
+      'challenge_id': challengeId,
+      'round_number': roundNumber,
+    }).select('id').single();
+    return response['id'] as String;
+  }
+
+  Future<void> completeSoloSession(String sessionId) async {
+    await _client.from('sessions').update({
+      'status': 'completed',
+      'completed_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', sessionId);
+  }
+
+  Future<List<Challenge>> getRandomChallenges(int count) async {
     final response = await _client
         .from('challenges')
         .select()

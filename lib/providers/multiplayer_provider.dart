@@ -235,7 +235,7 @@ class MultiplayerNotifier extends Notifier<MultiplayerState> {
         roundStartTime: DateTime.now(),
       );
     } else if (updatedSession.isCompleted) {
-      final playerScores = await _service.getPlayerScores(sessionId);
+      final playerScores = await _service.getPlayerScores(updatedSession.id);
       state = state.copyWith(
         phase: MultiplayerPhase.completed,
         session: updatedSession,

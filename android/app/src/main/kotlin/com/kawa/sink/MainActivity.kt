@@ -1,4 +1,4 @@
-package com.example.sync_or_sink
+package com.kawa.sink
 
 import io.flutter.embedding.android.FlutterActivity
 

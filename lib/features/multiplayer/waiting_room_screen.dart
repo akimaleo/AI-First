@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../providers/multiplayer_provider.dart';
+import '../../shared/services/share_links.dart';
 
 class WaitingRoomScreen extends ConsumerWidget {
   const WaitingRoomScreen({super.key});
@@ -70,8 +71,16 @@ class WaitingRoomScreen extends ConsumerWidget {
                         const SizedBox(width: 12),
                         FilledButton.icon(
                           onPressed: () {
+                            final me = mp.participants
+                                .where((p) =>
+                                    p.userId == mp.session?.hostId)
+                                .firstOrNull;
                             Share.share(
-                              'Join my Sync or Sink challenge! Code: ${mp.inviteCode}\n\nsyncorsink://join/${mp.inviteCode}',
+                              ShareLinks.inviteShareText(
+                                inviteCode: mp.inviteCode,
+                                fromUsername: me?.username,
+                              ),
+                              subject: 'Sync or Sink challenge',
                             );
                           },
                           icon: const Icon(Icons.share),

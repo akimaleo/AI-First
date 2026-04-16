@@ -5,6 +5,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
+import 'shared/services/perf_instrumentation.dart';
 import 'shared/services/sentry_service.dart';
 
 const _supabaseUrl = String.fromEnvironment(
@@ -17,6 +18,10 @@ const _supabaseAnonKey = String.fromEnvironment(
 );
 
 Future<void> main() async {
+  // Stamp the start of process boot before any heavy work — paired with
+  // PerfInstrumentation.completeStartupAndRecord() in HomeScreen for the
+  // GUSAA-43 startup baseline.
+  PerfInstrumentation.markAppStart();
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(

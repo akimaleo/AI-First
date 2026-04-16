@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers/multiplayer_provider.dart';
 import '../../providers/supabase_provider.dart';
+import '../../shared/services/perf_instrumentation.dart';
 import '../../shared/services/sentry_service.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -16,6 +17,16 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _inviteController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref
+          .read(perfInstrumentationProvider)
+          .completeStartupAndRecord();
+    });
+  }
 
   @override
   void dispose() {
@@ -54,6 +65,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 pathParameters: {'userId': currentUserId},
               ),
             ),
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings),
+            onPressed: () => context.pushNamed('settings'),
+          ),
           if (kDebugMode)
             IconButton(
               key: const Key('sentry-smoke-test'),

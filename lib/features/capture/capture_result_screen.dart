@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../providers/camera_provider.dart';
 import '../../providers/supabase_provider.dart';
+import '../../shared/services/perf_instrumentation.dart';
 import '../../shared/services/share_card_renderer.dart';
 import '../../shared/services/share_links.dart';
 import 'share_moment_card.dart';
@@ -26,6 +27,7 @@ class _CaptureResultScreenState extends ConsumerState<CaptureResultScreen> {
   final GlobalKey _cardBoundaryKey = GlobalKey();
   bool _sharing = false;
   bool _authorHydrated = false;
+  bool _perfRecorded = false;
 
   @override
   void initState() {
@@ -92,7 +94,10 @@ class _CaptureResultScreenState extends ConsumerState<CaptureResultScreen> {
                     key: _cardBoundaryKey,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(24),
-                      child: ShareMomentCard(data: shareCard),
+                      child: ShareMomentCard(
+                        data: shareCard,
+                        onSelfieLoaded: _recordCaptureMomentLatency,
+                      ),
                     ),
                   ),
                 ),
@@ -185,6 +190,25 @@ class _CaptureResultScreenState extends ConsumerState<CaptureResultScreen> {
     } else {
       context.goNamed('home');
     }
+  }
+
+  /// Records the GUSAA-43 "Capture the Moment" measurement: tap-to-rendered.
+  /// Fires once, the first time the modified selfie's bytes paint on screen.
+  void _recordCaptureMomentLatency() {
+    if (_perfRecorded) return;
+    final state = ref.read(captureMomentProvider);
+    final tappedAt = state.tapAt;
+    if (tappedAt == null) return;
+    _perfRecorded = true;
+    final ms = DateTime.now().difference(tappedAt).inMilliseconds;
+    final card = ref.read(lastShareCardProvider);
+    ref.read(perfInstrumentationProvider).recordCaptureMoment(
+      durationMs: ms,
+      tags: {
+        'used_fallback': (card?.usedFallback ?? false).toString(),
+        if (card?.prompt != null) 'prompt': card!.prompt,
+      },
+    );
   }
 
   Future<void> _share() async {

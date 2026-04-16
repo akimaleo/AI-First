@@ -178,7 +178,7 @@ jobs:
         with:
           appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
           serviceCredentialsFile: firebase-service-account.json
-          groups: ${{ vars.FIREBASE_TESTER_GROUPS || 'internal-testers' }}
+          groups: ${{ vars.FIREBASE_TESTER_GROUPS || 'testers' }}
           file: build/app/outputs/flutter-apk/app-release.apk
           releaseNotes: |
             Commit: ${{ github.sha }}

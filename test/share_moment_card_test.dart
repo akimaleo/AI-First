@@ -23,6 +23,7 @@ void main() {
         totalScore: 840,
         totalRounds: 10,
       ),
+      author: const ShareAuthor(username: 'sushigamer'),
     );
 
     await tester.pumpWidget(_wrap(ShareMomentCard(data: data)));
@@ -32,8 +33,48 @@ void main() {
     expect(find.text('840 pts'), findsOneWidget);
     expect(find.text('10 rounds'), findsOneWidget);
     expect(find.textContaining('eat sushi'), findsOneWidget);
+    expect(find.text('@sushigamer'), findsOneWidget);
+    expect(find.text('Play free on iOS + Android'), findsOneWidget);
     // Fallback chip should not show when AI succeeded.
     expect(find.text('AI unavailable'), findsNothing);
+  });
+
+  testWidgets('ShareMomentCard uses displayName when provided',
+      (tester) async {
+    final data = ShareCardData(
+      modifiedImagePath: 'https://cdn.example.com/fake.png',
+      prompt: 'prompt',
+      usedFallback: false,
+      capturedAt: DateTime(2026, 4, 16),
+      author: const ShareAuthor(
+        username: 'sushigamer',
+        displayName: 'Sushi Gamer',
+      ),
+    );
+
+    await tester.pumpWidget(_wrap(ShareMomentCard(data: data)));
+    await tester.pump();
+
+    expect(find.text('Sushi Gamer'), findsOneWidget);
+    expect(find.text('@sushigamer'), findsNothing);
+  });
+
+  testWidgets('ShareMomentCard hides author row when unknown',
+      (tester) async {
+    final data = ShareCardData(
+      modifiedImagePath: 'https://cdn.example.com/fake.png',
+      prompt: 'prompt',
+      usedFallback: false,
+      capturedAt: DateTime(2026, 4, 16),
+    );
+
+    await tester.pumpWidget(_wrap(ShareMomentCard(data: data)));
+    await tester.pump();
+
+    // Still shows CTA even without an author handle.
+    expect(find.text('Play free on iOS + Android'), findsOneWidget);
+    // No handle text means no '@' prefix leaks through.
+    expect(find.textContaining('@'), findsNothing);
   });
 
   testWidgets('ShareMomentCard labels fallback when AI unavailable',

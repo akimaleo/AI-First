@@ -19,6 +19,19 @@ class GameMomentContext {
   final String? challengeQuestion;
 }
 
+/// Author-identity metadata rendered on the share card (username handle) and
+/// embedded in the share sheet copy so recipients know who they're looking at.
+class ShareAuthor {
+  const ShareAuthor({required this.username, this.displayName});
+
+  final String username;
+  final String? displayName;
+
+  String get label => (displayName?.trim().isNotEmpty == true)
+      ? displayName!.trim()
+      : '@${username.trim()}';
+}
+
 /// Router payload for the capture route. Supports a bare prompt string for
 /// callers that don't have game context.
 class CaptureExtra {
@@ -46,6 +59,7 @@ class ShareCardData {
     required this.capturedAt,
     this.gameContext,
     this.pipelineLatencyMs,
+    this.author,
   });
 
   final String modifiedImagePath;
@@ -54,6 +68,17 @@ class ShareCardData {
   final DateTime capturedAt;
   final GameMomentContext? gameContext;
   final int? pipelineLatencyMs;
+  final ShareAuthor? author;
+
+  ShareCardData copyWith({ShareAuthor? author}) => ShareCardData(
+        modifiedImagePath: modifiedImagePath,
+        prompt: prompt,
+        usedFallback: usedFallback,
+        capturedAt: capturedAt,
+        gameContext: gameContext,
+        pipelineLatencyMs: pipelineLatencyMs,
+        author: author ?? this.author,
+      );
 }
 
 /// Keeps the most recent share card so downstream screens (solo results, etc.)
@@ -216,6 +241,23 @@ class ShareMomentCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (data.author != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text(
+                        data.author!.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          shadows: [
+                            Shadow(blurRadius: 6, color: Colors.black87),
+                          ],
+                        ),
+                      ),
+                    ),
                   Text(
                     '“$prompt”',
                     maxLines: 3,
@@ -252,11 +294,47 @@ class ShareMomentCard extends StatelessWidget {
                         ),
                     ],
                   ),
+                  const SizedBox(height: 10),
+                  const _StoreCta(),
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _StoreCta extends StatelessWidget {
+  const _StoreCta();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white24, width: 1),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.download_rounded, size: 14, color: Colors.white),
+          SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              'Play free on iOS + Android',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

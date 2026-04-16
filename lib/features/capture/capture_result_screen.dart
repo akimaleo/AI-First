@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../providers/camera_provider.dart';
+import '../../providers/supabase_provider.dart';
 import '../../shared/services/share_card_renderer.dart';
+import '../../shared/services/share_links.dart';
 import 'share_moment_card.dart';
 
 final shareCardRendererProvider = Provider<ShareCardRenderer>(
@@ -23,6 +25,33 @@ class CaptureResultScreen extends ConsumerStatefulWidget {
 class _CaptureResultScreenState extends ConsumerState<CaptureResultScreen> {
   final GlobalKey _cardBoundaryKey = GlobalKey();
   bool _sharing = false;
+  bool _authorHydrated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _hydrateAuthor());
+  }
+
+  Future<void> _hydrateAuthor() async {
+    if (_authorHydrated) return;
+    _authorHydrated = true;
+    final card = ref.read(lastShareCardProvider);
+    if (card == null || card.author != null) return;
+    try {
+      final profile = await ref.read(supabaseServiceProvider).getMyProfile();
+      if (profile == null || !mounted) return;
+      ref.read(lastShareCardProvider.notifier).state = card.copyWith(
+        author: ShareAuthor(
+          username: profile.username,
+          displayName: profile.displayName,
+        ),
+      );
+    } catch (_) {
+      // Best-effort — a missing profile just means the card renders without
+      // a handle line, which is already a supported state.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -170,10 +199,11 @@ class _CaptureResultScreenState extends ConsumerState<CaptureResultScreen> {
       final file = await renderer.exportToPng(boundary);
       final promptText =
           shareCard.gameContext?.promptText ?? shareCard.prompt;
-      final score = shareCard.gameContext?.totalScore;
-      final text = score != null
-          ? 'I scored $score in Sync or Sink! $promptText'
-          : promptText;
+      final text = ShareLinks.momentShareText(
+        fromUsername: shareCard.author?.username,
+        totalScore: shareCard.gameContext?.totalScore,
+        promptText: promptText,
+      );
       await Share.shareXFiles(
         [XFile(file.path)],
         text: text,

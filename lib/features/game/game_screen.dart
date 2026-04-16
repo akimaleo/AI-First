@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers/game_provider.dart';
 import '../../shared/widgets/countdown_timer.dart';
+import '../capture/share_moment_card.dart';
 
 class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
@@ -18,7 +19,11 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(gameProvider.notifier).startGame());
+    Future.microtask(() {
+      // Clear any stale share card from a prior game before starting fresh.
+      ref.read(lastShareCardProvider.notifier).state = null;
+      ref.read(gameProvider.notifier).startGame();
+    });
   }
 
   @override
@@ -51,7 +56,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   Future<void> _launchCaptureMoment(SoloGameState state) async {
     final prompt = _capturePromptFor(state);
-    await context.pushNamed('capture', extra: prompt);
+    await context.pushNamed(
+      'capture',
+      extra: CaptureExtra(
+        prompt: prompt,
+        gameContext: GameMomentContext(
+          promptText: prompt,
+          totalScore: state.totalScore,
+          totalRounds: state.totalRounds,
+          challengeQuestion: state.currentChallenge == null
+              ? null
+              : 'Would you rather... ${state.currentChallenge!.optionA}'
+                  ' OR ${state.currentChallenge!.optionB}',
+        ),
+      ),
+    );
     if (!mounted) return;
     _timerKey.value++;
     ref.read(gameProvider.notifier).nextRound();

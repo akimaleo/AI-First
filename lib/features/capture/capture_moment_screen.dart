@@ -6,11 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../providers/camera_provider.dart';
+import 'share_moment_card.dart';
 
 class CaptureMomentScreen extends ConsumerStatefulWidget {
-  const CaptureMomentScreen({super.key, required this.prompt});
+  const CaptureMomentScreen({super.key, required this.extra});
 
-  final String prompt;
+  final CaptureExtra extra;
+
+  String get prompt => extra.prompt;
 
   @override
   ConsumerState<CaptureMomentScreen> createState() =>
@@ -30,7 +33,7 @@ class _CaptureMomentScreenState extends ConsumerState<CaptureMomentScreen>
     Future.microtask(() async {
       await ref
           .read(captureMomentProvider.notifier)
-          .beginCapture(widget.prompt);
+          .beginCapture(widget.prompt, gameContext: widget.extra.gameContext);
       final phase = ref.read(captureMomentProvider).phase;
       if (phase == CapturePhase.ready) {
         await _initializeCamera();
@@ -147,7 +150,7 @@ class _CaptureMomentScreenState extends ConsumerState<CaptureMomentScreen>
           onPrimary: () async {
             await ref
                 .read(captureMomentProvider.notifier)
-                .beginCapture(widget.prompt);
+                .beginCapture(widget.prompt, gameContext: widget.extra.gameContext);
             if (ref.read(captureMomentProvider).phase == CapturePhase.ready) {
               await _initializeCamera();
             }
@@ -184,7 +187,7 @@ class _CaptureMomentScreenState extends ConsumerState<CaptureMomentScreen>
             _startedCapture = false;
             await ref
                 .read(captureMomentProvider.notifier)
-                .beginCapture(widget.prompt);
+                .beginCapture(widget.prompt, gameContext: widget.extra.gameContext);
             if (ref.read(captureMomentProvider).phase == CapturePhase.ready) {
               await _initializeCamera();
             }

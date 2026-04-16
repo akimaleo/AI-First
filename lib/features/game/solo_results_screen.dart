@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../providers/game_provider.dart';
+import '../capture/share_moment_card.dart';
 
 class SoloResultsScreen extends ConsumerWidget {
   const SoloResultsScreen({super.key});
@@ -10,6 +11,7 @@ class SoloResultsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(gameProvider);
+    final shareCard = ref.watch(lastShareCardProvider);
     final theme = Theme.of(context);
 
     final maxPossible = state.totalRounds * 100;
@@ -93,6 +95,10 @@ class SoloResultsScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              if (shareCard != null) ...[
+                const SizedBox(height: 16),
+                _MomentCardTile(shareCard: shareCard),
+              ],
               const SizedBox(height: 16),
               Expanded(
                 child: ListView.builder(
@@ -166,6 +172,62 @@ class SoloResultsScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MomentCardTile extends StatelessWidget {
+  const _MomentCardTile({required this.shareCard});
+
+  final ShareCardData shareCard;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.goNamed('capture-result'),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 72,
+                height: 90,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: SelfieImage(path: shareCard.modifiedImagePath),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Your Capture the Moment',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      shareCard.gameContext?.promptText ?? shareCard.prompt,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.ios_share),
             ],
           ),
         ),

@@ -49,6 +49,23 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>app.syncorsink.invite</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>syncorsink</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Sync or Sink uses your camera to capture selfies during Capture the Moment prompts so they can be transformed by the in-game AI.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

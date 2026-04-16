@@ -2,12 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'router/app_router.dart';
+import 'shared/services/deep_link_service.dart';
 
-class SyncOrSinkApp extends ConsumerWidget {
+class SyncOrSinkApp extends ConsumerStatefulWidget {
   const SyncOrSinkApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SyncOrSinkApp> createState() => _SyncOrSinkAppState();
+}
+
+class _SyncOrSinkAppState extends ConsumerState<SyncOrSinkApp> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final router = ref.read(appRouterProvider);
+      ref.read(deepLinkServiceProvider).start(router);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(

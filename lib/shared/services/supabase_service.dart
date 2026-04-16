@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/challenge.dart';
 import '../models/game_session.dart';
+import '../models/leaderboard_entry.dart';
 import '../models/score.dart';
 
 class SupabaseService {
@@ -329,5 +330,117 @@ class SupabaseService {
 
     if (response == null) return null;
     return GameSession.fromJson(response);
+  }
+
+  Future<List<LeaderboardEntry>> getGlobalLeaderboard({int limit = 50}) async {
+    final response = await _client.rpc(
+      'get_leaderboard',
+      params: {'limit_count': limit},
+    );
+    return (response as List)
+        .map((e) => LeaderboardEntry.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<LeaderboardEntry>> getFriendsLeaderboard({int limit = 50}) async {
+    final response = await _client.rpc(
+      'get_friends_leaderboard',
+      params: {'limit_count': limit},
+    );
+    return (response as List)
+        .map((e) => LeaderboardEntry.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<UserProfile?> getUserProfile(String userId) async {
+    final response = await _client.rpc(
+      'get_user_profile',
+      params: {'target_user_id': userId},
+    );
+    final list = response as List;
+    if (list.isEmpty) return null;
+    return UserProfile.fromJson(list.first as Map<String, dynamic>);
+  }
+
+  Future<UserProfile?> getMyProfile() async {
+    final userId = currentUserId;
+    if (userId == null) return null;
+    return getUserProfile(userId);
+  }
+
+  Future<List<HistoryEntry>> getUserHistory(
+    String userId, {
+    int limit = 25,
+  }) async {
+    final response = await _client.rpc(
+      'get_user_history',
+      params: {'target_user_id': userId, 'limit_count': limit},
+    );
+    return (response as List)
+        .map((e) => HistoryEntry.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<UserSearchResult>> searchUsers(String term,
+      {int limit = 20}) async {
+    final trimmed = term.trim();
+    if (trimmed.isEmpty) return const [];
+    final response = await _client.rpc(
+      'search_users',
+      params: {'search_term': trimmed, 'limit_count': limit},
+    );
+    return (response as List)
+        .map((e) => UserSearchResult.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<LeaderboardEntry>> listFollowing(String userId) async {
+    final response = await _client
+        .from('follows')
+        .select('followee:users!follows_followee_id_fkey('
+            'id, username, display_name, avatar_url, total_score, '
+            'games_played, games_won)')
+        .eq('follower_id', userId);
+
+    return (response as List)
+        .map((row) => (row as Map<String, dynamic>)['followee']
+            as Map<String, dynamic>)
+        .map(LeaderboardEntry.fromJson)
+        .toList();
+  }
+
+  Future<List<LeaderboardEntry>> listFollowers(String userId) async {
+    final response = await _client
+        .from('follows')
+        .select('follower:users!follows_follower_id_fkey('
+            'id, username, display_name, avatar_url, total_score, '
+            'games_played, games_won)')
+        .eq('followee_id', userId);
+
+    return (response as List)
+        .map((row) => (row as Map<String, dynamic>)['follower']
+            as Map<String, dynamic>)
+        .map(LeaderboardEntry.fromJson)
+        .toList();
+  }
+
+  Future<void> followUser(String targetUserId) async {
+    final userId = currentUserId;
+    if (userId == null) throw Exception('Not authenticated');
+    if (userId == targetUserId) return;
+    await _client.from('follows').upsert({
+      'follower_id': userId,
+      'followee_id': targetUserId,
+    });
+  }
+
+  Future<void> unfollowUser(String targetUserId) async {
+    final userId = currentUserId;
+    if (userId == null) return;
+    await _client
+        .from('follows')
+        .delete()
+        .eq('follower_id', userId)
+        .eq('followee_id', targetUserId);
   }
 }

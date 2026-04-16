@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../providers/multiplayer_provider.dart';
+import '../../providers/supabase_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -24,10 +25,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
+    final currentUserId =
+        ref.watch(supabaseClientProvider).auth.currentUser?.id;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Sync or Sink'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            tooltip: 'Leaderboard',
+            icon: const Icon(Icons.leaderboard),
+            onPressed: () => context.pushNamed('leaderboard'),
+          ),
+          IconButton(
+            tooltip: 'Friends',
+            icon: const Icon(Icons.group),
+            onPressed: () => context.pushNamed('friends'),
+          ),
+          if (currentUserId != null)
+            IconButton(
+              tooltip: 'My profile',
+              icon: const Icon(Icons.person),
+              onPressed: () => context.pushNamed(
+                'profile',
+                pathParameters: {'userId': currentUserId},
+              ),
+            ),
+        ],
       ),
       body: Center(
         child: Padding(

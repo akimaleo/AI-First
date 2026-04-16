@@ -5,6 +5,14 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// google-services.json is gitignored (see /.gitignore) and only written by CI
+// from the GOOGLE_SERVICES_JSON_BASE64 secret. Only apply the Google Services
+// plugin when the file is present so local builds without Firebase credentials
+// still succeed.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.kawa.sink"
     compileSdk = flutter.compileSdkVersion

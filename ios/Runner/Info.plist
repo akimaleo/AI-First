@@ -49,6 +49,10 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Sync or Sink uses your camera to capture selfies during Capture the Moment prompts so they can be transformed by the in-game AI.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Sync or Sink saves your transformed selfies to your photo library so you can share them.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

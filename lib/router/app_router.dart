@@ -11,6 +11,8 @@ import '../features/multiplayer/challenge_results_screen.dart';
 import '../features/social/friends_screen.dart';
 import '../features/social/leaderboard_screen.dart';
 import '../features/social/profile_screen.dart';
+import '../features/capture/capture_moment_screen.dart';
+import '../features/capture/capture_result_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -62,6 +64,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ProfileScreen(
           userId: state.pathParameters['userId']!,
         ),
+      ),
+      GoRoute(
+        path: '/capture',
+        name: 'capture',
+        builder: (context, state) {
+          final prompt = state.extra as String? ?? 'Capture the moment';
+          return CaptureMomentScreen(prompt: prompt);
+        },
+      ),
+      GoRoute(
+        path: '/capture-result',
+        name: 'capture-result',
+        builder: (context, state) => const CaptureResultScreen(),
       ),
       GoRoute(
         path: '/join/:code',

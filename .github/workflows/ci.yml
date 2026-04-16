@@ -57,14 +57,47 @@ jobs:
           channel: stable
           cache: true
       - name: Decode google-services.json
-        run: echo "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" | base64 -d > android/app/google-services.json
+        run: |
+          set -euo pipefail
+          secret="${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}"
+          if [ -z "$secret" ]; then
+            echo "GOOGLE_SERVICES_JSON_BASE64 not set; skipping google-services.json (no Firebase Gradle plugin is applied)."
+            exit 0
+          fi
+          mkdir -p android/app
+          printf '%s' "$secret" | base64 -d > android/app/google-services.json
+          if ! head -c 1 android/app/google-services.json | grep -q '{'; then
+            echo "Decoded google-services.json does not look like JSON; refusing to use it." >&2
+            exit 1
+          fi
       - run: flutter pub get
       - name: Build APK
+        id: build_apk
         run: |
-          flutter build apk --release \
+          set -o pipefail
+          flutter build apk --release --verbose \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            2>&1 | tee build-apk.log
+      - name: Surface build log on failure
+        if: always() && steps.build_apk.outcome == 'failure'
+        run: |
+          {
+            echo "## Build APK failure log (last 400 lines)"
+            echo
+            echo '```'
+            tail -n 400 build-apk.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-log
+          path: build-apk.log
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: android-apk
           path: build/app/outputs/flutter-apk/app-release.apk

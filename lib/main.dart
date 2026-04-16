@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +29,20 @@ Future<void> main() async {
     url: _supabaseUrl,
     anonKey: _supabaseAnonKey,
   );
+
+  // Phase 1 of the Supabase -> Firebase migration (GUSAA-50): wire Firebase
+  // alongside Supabase with no behaviour change. Native config comes from
+  // android/app/google-services.json (gitignored; written by CI from the
+  // GOOGLE_SERVICES_JSON_BASE64 secret). If the file is absent — common during
+  // local dev — swallow the init failure so the app still boots on Supabase.
+  try {
+    await Firebase.initializeApp();
+  } catch (error, stackTrace) {
+    if (kDebugMode) {
+      debugPrint('Firebase.initializeApp() skipped: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
+  }
 
   await initSentry(() async {
     if (sentryDsn.isNotEmpty) {

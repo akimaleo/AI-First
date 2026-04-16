@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/challenge.dart';
@@ -8,11 +9,12 @@ import '../models/leaderboard_entry.dart';
 import '../models/score.dart';
 
 class SupabaseService {
-  SupabaseService(this._client);
+  SupabaseService(this._client, this._auth);
 
   final SupabaseClient _client;
+  final FirebaseAuth _auth;
 
-  String? get currentUserId => _client.auth.currentUser?.id;
+  String? get currentUserId => _auth.currentUser?.uid;
 
   String _generateInviteCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

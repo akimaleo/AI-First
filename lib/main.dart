@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -31,16 +32,33 @@ Future<void> main() async {
   );
 
   // Phase 1 of the Supabase -> Firebase migration (GUSAA-50): wire Firebase
-  // alongside Supabase with no behaviour change. Native config comes from
+  // alongside Supabase. Native config comes from
   // android/app/google-services.json (gitignored; written by CI from the
   // GOOGLE_SERVICES_JSON_BASE64 secret). If the file is absent — common during
   // local dev — swallow the init failure so the app still boots on Supabase.
+  var firebaseReady = false;
   try {
     await Firebase.initializeApp();
+    firebaseReady = true;
   } catch (error, stackTrace) {
     if (kDebugMode) {
       debugPrint('Firebase.initializeApp() skipped: $error');
       debugPrintStack(stackTrace: stackTrace);
+    }
+  }
+
+  // Phase 2 of GUSAA-50: establish an anonymous Firebase session so every
+  // client has a stable uid. Board owner chose anonymous-only auth for the
+  // MVP. Only attempt when Firebase initialized — without the native config
+  // FirebaseAuth would throw on sign-in too.
+  if (firebaseReady && FirebaseAuth.instance.currentUser == null) {
+    try {
+      await FirebaseAuth.instance.signInAnonymously();
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('FirebaseAuth.signInAnonymously() failed: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
     }
   }
 

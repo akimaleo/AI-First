@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../providers/auth_provider.dart';
 import '../../providers/leaderboard_provider.dart';
-import '../../providers/supabase_provider.dart';
 import '../../shared/models/leaderboard_entry.dart';
 import '../../shared/widgets/player_avatar.dart';
 
@@ -14,7 +14,7 @@ class LeaderboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scope = ref.watch(leaderboardScopeProvider);
     final entries = ref.watch(leaderboardProvider);
-    final currentUserId = ref.watch(supabaseClientProvider).auth.currentUser?.id;
+    final currentUserId = ref.watch(currentUserIdProvider);
 
     return Scaffold(
       appBar: AppBar(

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -48,7 +49,7 @@ class MultiplayerState {
 
   String get inviteCode => session?.inviteCode ?? '';
   bool get isHost => session != null &&
-      Supabase.instance.client.auth.currentUser?.id == session!.hostId;
+      FirebaseAuth.instance.currentUser?.uid == session!.hostId;
   bool get allReady => participants.isNotEmpty &&
       participants.every((p) => p.isReady);
   int get participantCount => participants.length;

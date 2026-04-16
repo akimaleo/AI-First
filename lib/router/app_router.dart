@@ -8,6 +8,9 @@ import '../features/game/solo_results_screen.dart';
 import '../features/multiplayer/waiting_room_screen.dart';
 import '../features/multiplayer/multiplayer_game_screen.dart';
 import '../features/multiplayer/challenge_results_screen.dart';
+import '../features/social/friends_screen.dart';
+import '../features/social/leaderboard_screen.dart';
+import '../features/social/profile_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -42,6 +45,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/challenge-results',
         name: 'challenge-results',
         builder: (context, state) => const ChallengeResultsScreen(),
+      ),
+      GoRoute(
+        path: '/leaderboard',
+        name: 'leaderboard',
+        builder: (context, state) => const LeaderboardScreen(),
+      ),
+      GoRoute(
+        path: '/friends',
+        name: 'friends',
+        builder: (context, state) => const FriendsScreen(),
+      ),
+      GoRoute(
+        path: '/profile/:userId',
+        name: 'profile',
+        builder: (context, state) => ProfileScreen(
+          userId: state.pathParameters['userId']!,
+        ),
       ),
       GoRoute(
         path: '/join/:code',

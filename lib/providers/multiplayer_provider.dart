@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' hide Provider;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../shared/models/challenge.dart';
 import '../shared/models/game_session.dart';

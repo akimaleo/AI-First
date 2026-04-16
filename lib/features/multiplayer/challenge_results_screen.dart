@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../providers/auth_provider.dart';
 import '../../providers/multiplayer_provider.dart';
 import '../../shared/models/score.dart';
 import '../../shared/services/share_links.dart';
@@ -15,7 +15,7 @@ class ChallengeResultsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final mp = ref.watch(multiplayerProvider);
     final theme = Theme.of(context);
-    final myId = Supabase.instance.client.auth.currentUser?.id;
+    final myId = ref.watch(currentUserIdProvider);
     final scores = mp.playerScores;
 
     final isWinner =

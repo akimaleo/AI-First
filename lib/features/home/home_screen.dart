@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../providers/auth_provider.dart';
 import '../../providers/multiplayer_provider.dart';
-import '../../providers/supabase_provider.dart';
 import '../../shared/services/perf_instrumentation.dart';
 import '../../shared/services/sentry_service.dart';
 
@@ -38,8 +38,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final currentUserId =
-        ref.watch(supabaseClientProvider).auth.currentUser?.id;
+    final currentUserId = ref.watch(currentUserIdProvider);
 
     return Scaffold(
       appBar: AppBar(

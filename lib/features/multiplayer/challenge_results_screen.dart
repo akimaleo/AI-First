@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../providers/multiplayer_provider.dart';
+import '../../shared/models/score.dart';
+import '../../shared/services/share_links.dart';
 
 class ChallengeResultsScreen extends ConsumerWidget {
   const ChallengeResultsScreen({super.key});
@@ -105,6 +108,21 @@ class ChallengeResultsScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
+              if (scores.isNotEmpty)
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _shareResults(
+                      scores: scores,
+                      myId: myId,
+                      isWinner: isWinner,
+                      isTie: isTie,
+                    ),
+                    icon: const Icon(Icons.share),
+                    label: const Text('Share result'),
+                  ),
+                ),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
@@ -137,6 +155,43 @@ class ChallengeResultsScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _shareResults({
+    required List<PlayerScore> scores,
+    required String? myId,
+    required bool isWinner,
+    required bool isTie,
+  }) async {
+    final me = myId == null
+        ? null
+        : scores.where((s) => s.userId == myId).firstOrNull;
+    final opponent = myId == null
+        ? null
+        : scores.where((s) => s.userId != myId).firstOrNull;
+
+    final outcome = isTie
+        ? 'tied'
+        : isWinner
+            ? 'won'
+            : 'lost';
+    final score = me?.totalPoints;
+    final handle = me?.username;
+    final vs = opponent != null
+        ? ' vs @${opponent.username} (${opponent.totalPoints} pts)'
+        : '';
+    final prompt = score != null
+        ? 'I $outcome $score pts$vs in Sync or Sink!'
+        : 'I $outcome my Sync or Sink match$vs!';
+
+    await Share.share(
+      ShareLinks.momentShareText(
+        fromUsername: handle,
+        totalScore: score,
+        promptText: prompt,
+      ),
+      subject: 'Sync or Sink result',
     );
   }
 }

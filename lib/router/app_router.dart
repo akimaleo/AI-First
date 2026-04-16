@@ -83,7 +83,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/join/:code',
         name: 'join',
         redirect: (context, state) {
-          return '/waiting-room?invite=${state.pathParameters['code']}';
+          final code = state.pathParameters['code']?.toUpperCase() ?? '';
+          return '/waiting-room?invite=$code';
         },
       ),
     ],

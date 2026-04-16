@@ -157,16 +157,16 @@ jobs:
           path: build/app/outputs/flutter-apk/
       - name: Write Firebase service account credentials
         env:
-          FIREBASE_SERVICE_ACCOUNT_JSON_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 }}
+          GOOGLE_SERVICES_KEY: ${{ secrets.GOOGLE_SERVICES_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "${FIREBASE_SERVICE_ACCOUNT_JSON_BASE64:-}" ]; then
-            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 secret is not set. Firebase App Distribution requires a base64-encoded service account JSON." >&2
+          if [ -z "${GOOGLE_SERVICES_KEY:-}" ]; then
+            echo "::error::GOOGLE_SERVICES_KEY secret is not set. Firebase App Distribution requires a base64-encoded service account JSON." >&2
             exit 1
           fi
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON_BASE64" | base64 -d > firebase-service-account.json
+          printf '%s' "$GOOGLE_SERVICES_KEY" | base64 -d > firebase-service-account.json
           if ! head -c 1 firebase-service-account.json | grep -q '{'; then
-            echo "::error::Decoded FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 is not valid JSON. Verify the secret was base64-encoded from a service-account key file." >&2
+            echo "::error::Decoded GOOGLE_SERVICES_KEY is not valid JSON. Verify the secret was base64-encoded from a service-account key file." >&2
             exit 1
           fi
           if ! grep -q '"type"[[:space:]]*:[[:space:]]*"service_account"' firebase-service-account.json; then

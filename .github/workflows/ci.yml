@@ -97,11 +97,29 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const lines = fs.readFileSync('build-apk.log', 'utf8').split('\n');
-            const tail = lines.slice(-300).join('\n').slice(-55000);
+            const all = fs.readFileSync('build-apk.log', 'utf8').split('\n');
+            // Strip the verbose `[ +123 ms]` prefix Flutter adds so the raw
+            // gradle/kotlinc lines are easier to scan.
+            const stripped = all.map(l => l.replace(/^\[\s*[+\-]?\d+\s*m?s?\]\s?/, ''));
+            const errorRe = /^(e:|w:|error:|FAILURE:|Caused by:|>\s*Task\s+:sentry|Compilation error|Unresolved reference|incompatible|Symbol not found)/;
+            const errorIdxs = [];
+            stripped.forEach((l, i) => { if (errorRe.test(l)) errorIdxs.push(i); });
+            const ctx = new Set();
+            errorIdxs.forEach(i => {
+              for (let j = Math.max(0, i - 5); j < Math.min(stripped.length, i + 15); j++) ctx.add(j);
+            });
+            const focused = [...ctx].sort((a,b)=>a-b)
+              .map(i => stripped[i]).join('\n').slice(-30000);
+            const tail = stripped.slice(-200).join('\n').slice(-25000);
             const body = [
-              '### Build APK failure log (last 300 lines, run ' + context.runId + ')',
+              '### Build APK failure (run ' + context.runId + ')',
               '',
+              '#### Focused error context',
+              '```',
+              focused || '(no error markers matched; see tail below)',
+              '```',
+              '',
+              '#### Tail (last 200 lines)',
               '```',
               tail,
               '```',

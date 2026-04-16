@@ -4,13 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../shared/services/camera_service.dart';
 import '../shared/services/selfie_pipeline_service.dart';
+import 'ai_selfie_provider.dart';
 
 final cameraServiceProvider = Provider<CameraService>((ref) {
   return CameraService();
 });
 
 final selfiePipelineServiceProvider = Provider<SelfiePipelineService>((ref) {
-  return StubSelfiePipelineService();
+  return ref.watch(replicateSelfiePipelineServiceProvider);
 });
 
 enum CapturePhase {

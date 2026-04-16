@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../providers/multiplayer_provider.dart';
 import '../../providers/supabase_provider.dart';
+import '../../shared/services/sentry_service.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -51,6 +53,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 'profile',
                 pathParameters: {'userId': currentUserId},
               ),
+            ),
+          if (kDebugMode)
+            IconButton(
+              key: const Key('sentry-smoke-test'),
+              tooltip: 'Throw test error (Sentry smoke test)',
+              icon: const Icon(Icons.bug_report),
+              onPressed: triggerSentrySmokeTest,
             ),
         ],
       ),

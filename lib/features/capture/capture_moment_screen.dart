@@ -120,7 +120,7 @@ class _CaptureMomentScreenState extends ConsumerState<CaptureMomentScreen>
     ref.listen<CaptureMomentState>(captureMomentProvider, (prev, next) {
       if (next.phase == CapturePhase.completed &&
           prev?.phase != CapturePhase.completed) {
-        context.goNamed('capture-result');
+        context.pushReplacementNamed('capture-result');
       }
     });
 

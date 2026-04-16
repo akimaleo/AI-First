@@ -92,7 +92,8 @@ class CaptureResultScreen extends ConsumerWidget {
                     child: OutlinedButton.icon(
                       onPressed: () {
                         ref.read(captureMomentProvider.notifier).reset();
-                        context.goNamed('capture', extra: result.prompt);
+                        context.pushReplacementNamed('capture',
+                            extra: result.prompt);
                       },
                       icon: const Icon(Icons.refresh),
                       label: const Text('Retake'),

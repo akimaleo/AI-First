@@ -34,6 +34,29 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     }
   }
 
+  String _capturePromptFor(SoloGameState state) {
+    final challenge = state.currentChallenge;
+    if (challenge == null) {
+      return 'Capture your reaction to this round!';
+    }
+    final lastChoice =
+        state.roundChoices.isNotEmpty ? state.roundChoices.last : null;
+    final chosen = lastChoice == 'a'
+        ? challenge.optionA
+        : lastChoice == 'b'
+            ? challenge.optionB
+            : challenge.optionA;
+    return 'Your face: "$chosen"';
+  }
+
+  Future<void> _launchCaptureMoment(SoloGameState state) async {
+    final prompt = _capturePromptFor(state);
+    await context.pushNamed('capture', extra: prompt);
+    if (!mounted) return;
+    _timerKey.value++;
+    ref.read(gameProvider.notifier).nextRound();
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(gameProvider);
@@ -196,19 +219,104 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              FilledButton(
-                onPressed: () {
-                  _timerKey.value++;
-                  ref.read(gameProvider.notifier).nextRound();
-                },
-                child: Text(state.isLastRound ? 'See Results' : 'Next Round'),
-              ),
+              if (state.isLastRound)
+                _CaptureMomentCallout(
+                  prompt: _capturePromptFor(state),
+                  onCapture: () => _launchCaptureMoment(state),
+                  onSkip: () {
+                    _timerKey.value++;
+                    ref.read(gameProvider.notifier).nextRound();
+                  },
+                )
+              else
+                FilledButton(
+                  onPressed: () {
+                    _timerKey.value++;
+                    ref.read(gameProvider.notifier).nextRound();
+                  },
+                  child: const Text('Next Round'),
+                ),
               const Spacer(),
             ],
             const Spacer(),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CaptureMomentCallout extends StatelessWidget {
+  const _CaptureMomentCallout({
+    required this.prompt,
+    required this.onCapture,
+    required this.onSkip,
+  });
+
+  final String prompt;
+  final VoidCallback onCapture;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.tertiaryContainer,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.camera_alt,
+                      color: theme.colorScheme.onTertiaryContainer),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Capture the Moment',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onTertiaryContainer,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                prompt,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onTertiaryContainer,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: onSkip,
+                child: const Text('Skip'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: onCapture,
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('Take selfie'),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

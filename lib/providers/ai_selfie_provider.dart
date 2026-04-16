@@ -17,10 +17,9 @@ final replicateSelfiePipelineServiceProvider =
   return ReplicateSelfiePipelineService(ref.watch(aiSelfieServiceProvider));
 });
 
-/// The abstract-typed provider the camera flow (GUSAA-10) consumes.
-final selfiePipelineServiceProvider = Provider<SelfiePipelineService>((ref) {
-  return ref.watch(replicateSelfiePipelineServiceProvider);
-});
+// `selfiePipelineServiceProvider` is declared in camera_provider.dart
+// (introduced by GUSAA-10) and points at this real implementation via
+// `replicateSelfiePipelineServiceProvider` above.
 
 final aiSelfiePromptsProvider = Provider<List<AiSelfiePrompt>>((ref) {
   return AiSelfiePromptKeys.all;

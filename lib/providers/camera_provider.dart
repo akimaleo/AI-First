@@ -41,6 +41,7 @@ class CaptureMomentState {
     this.capturedImagePath,
     this.result,
     this.error,
+    this.tapAt,
     this.pipelineStartedAt,
     this.pipelineCompletedAt,
   });
@@ -51,6 +52,10 @@ class CaptureMomentState {
   final String? capturedImagePath;
   final SelfiePipelineResult? result;
   final String? error;
+
+  /// Wall-clock instant the user tapped the shutter. Bookends the
+  /// "tap-to-rendered" measurement that GUSAA-43 baselines.
+  final DateTime? tapAt;
   final DateTime? pipelineStartedAt;
   final DateTime? pipelineCompletedAt;
 
@@ -69,6 +74,7 @@ class CaptureMomentState {
     String? capturedImagePath,
     SelfiePipelineResult? result,
     String? error,
+    DateTime? tapAt,
     DateTime? pipelineStartedAt,
     DateTime? pipelineCompletedAt,
   }) {
@@ -79,6 +85,7 @@ class CaptureMomentState {
       capturedImagePath: capturedImagePath ?? this.capturedImagePath,
       result: result ?? this.result,
       error: error ?? this.error,
+      tapAt: tapAt ?? this.tapAt,
       pipelineStartedAt: pipelineStartedAt ?? this.pipelineStartedAt,
       pipelineCompletedAt: pipelineCompletedAt ?? this.pipelineCompletedAt,
     );
@@ -125,7 +132,10 @@ class CaptureMomentNotifier extends Notifier<CaptureMomentState> {
   }
 
   void markCapturing() {
-    state = state.copyWith(phase: CapturePhase.capturing);
+    state = state.copyWith(
+      phase: CapturePhase.capturing,
+      tapAt: _now(),
+    );
   }
 
   Future<void> onPhotoCaptured(

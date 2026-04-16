@@ -88,13 +88,14 @@ final lastShareCardProvider = StateProvider<ShareCardData?>((ref) => null);
 /// Loads the modified image as a local file or network resource depending on
 /// the source returned by the selfie pipeline. Replicate returns remote URLs;
 /// the fallback path is local disk.
-class SelfieImage extends StatelessWidget {
+class SelfieImage extends StatefulWidget {
   const SelfieImage({
     super.key,
     required this.path,
     this.fit = BoxFit.cover,
     this.width,
     this.height,
+    this.onLoaded,
   });
 
   final String path;
@@ -102,19 +103,44 @@ class SelfieImage extends StatelessWidget {
   final double? width;
   final double? height;
 
+  /// Fires once, the first time the image's pixels are available to paint.
+  /// Used by the capture flow to bookend the tap-to-rendered measurement.
+  final VoidCallback? onLoaded;
+
+  @override
+  State<SelfieImage> createState() => _SelfieImageState();
+}
+
+class _SelfieImageState extends State<SelfieImage> {
+  bool _notified = false;
+
   bool get _isRemote =>
-      path.startsWith('http://') || path.startsWith('https://');
+      widget.path.startsWith('http://') ||
+      widget.path.startsWith('https://');
+
+  void _maybeNotifyLoaded() {
+    if (_notified) return;
+    final cb = widget.onLoaded;
+    if (cb == null) return;
+    _notified = true;
+    // Defer to the post-frame callback so the listener observes the same
+    // frame in which the bytes actually paint.
+    WidgetsBinding.instance.addPostFrameCallback((_) => cb());
+  }
 
   @override
   Widget build(BuildContext context) {
     if (_isRemote) {
       return Image.network(
-        path,
-        fit: fit,
-        width: width,
-        height: height,
+        widget.path,
+        fit: widget.fit,
+        width: widget.width,
+        height: widget.height,
         loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
+          if (progress == null) {
+            _maybeNotifyLoaded();
+            return child;
+          }
           return const Center(
             child: CircularProgressIndicator(),
           );
@@ -124,10 +150,16 @@ class SelfieImage extends StatelessWidget {
       );
     }
     return Image.file(
-      File(path),
-      fit: fit,
-      width: width,
-      height: height,
+      File(widget.path),
+      fit: widget.fit,
+      width: widget.width,
+      height: widget.height,
+      frameBuilder: (context, child, frame, wasSyncLoaded) {
+        if (frame != null || wasSyncLoaded) {
+          _maybeNotifyLoaded();
+        }
+        return child;
+      },
       errorBuilder: (context, error, stack) =>
           const _ImageError(message: 'Image missing'),
     );
@@ -164,10 +196,15 @@ class ShareMomentCard extends StatelessWidget {
     super.key,
     required this.data,
     this.aspectRatio = 4 / 5,
+    this.onSelfieLoaded,
   });
 
   final ShareCardData data;
   final double aspectRatio;
+
+  /// Forwarded to the underlying [SelfieImage]; fires once the modified
+  /// selfie is on screen.
+  final VoidCallback? onSelfieLoaded;
 
   @override
   Widget build(BuildContext context) {
@@ -192,7 +229,10 @@ class ShareMomentCard extends StatelessWidget {
             Positioned.fill(
               child: Opacity(
                 opacity: 0.9,
-                child: SelfieImage(path: data.modifiedImagePath),
+                child: SelfieImage(
+                  path: data.modifiedImagePath,
+                  onLoaded: onSelfieLoaded,
+                ),
               ),
             ),
             const Positioned.fill(

@@ -1,0 +1,87 @@
+rules_version = '2';
+
+// Security rules for sync-or-sink. Board owner chose plan B of GUSAA-50:
+// client-side Firestore queries (no Cloud Functions), so these rules enforce
+// the constraints the old Supabase RPCs and RLS used to enforce.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isSessionHost(sessionId) {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/sessions/$(sessionId)).data.host_id == request.auth.uid;
+    }
+
+    function isSessionParticipant(sessionId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/sessions/$(sessionId)/participants/$(request.auth.uid));
+    }
+
+    // User profiles — readable to anyone signed in; each user can only write
+    // their own doc. Mirrors the old public.users RLS.
+    match /users/{uid} {
+      allow read: if isSignedIn();
+      allow create, update: if isSelf(uid);
+      allow delete: if false;
+    }
+
+    // Follows are keyed as "{followerUid}_{followeeUid}" so the follower is
+    // encoded in the doc id and unambiguous.
+    match /follows/{followId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() &&
+        request.resource.data.follower_id == request.auth.uid &&
+        followId == request.resource.data.follower_id + '_' + request.resource.data.followee_id;
+      allow delete: if isSignedIn() &&
+        resource.data.follower_id == request.auth.uid;
+      allow update: if false;
+    }
+
+    // Challenges are curated; the app only reads them. Admin SDK writes.
+    match /challenges/{challengeId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // Sessions and their subcollections.
+    match /sessions/{sessionId} {
+      allow read: if isSignedIn();
+      // Only the host creates a session and keys host_id to themselves.
+      allow create: if isSignedIn() &&
+        request.resource.data.host_id == request.auth.uid;
+      // Host can update session state; participants can toggle their own
+      // ready flag via the participant subcollection, not here.
+      allow update: if isSessionHost(sessionId);
+      allow delete: if isSessionHost(sessionId);
+
+      match /participants/{uid} {
+        allow read: if isSignedIn();
+        // Any signed-in user can join as themselves; host can remove.
+        allow create, update: if isSelf(uid);
+        allow delete: if isSelf(uid) || isSessionHost(sessionId);
+      }
+
+      match /rounds/{roundId} {
+        allow read: if isSessionParticipant(sessionId);
+        // Host writes rounds when starting or advancing the session.
+        allow write: if isSessionHost(sessionId);
+      }
+
+      match /scores/{scoreId} {
+        allow read: if isSessionParticipant(sessionId);
+        // Score docs are keyed "{uid}_{roundId}". Users can only write their
+        // own scores; no updates — the first answer wins.
+        allow create: if isSignedIn() &&
+          request.resource.data.user_id == request.auth.uid &&
+          scoreId == request.auth.uid + '_' + request.resource.data.round_id;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

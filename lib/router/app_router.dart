@@ -14,6 +14,8 @@ import '../features/social/profile_screen.dart';
 import '../features/capture/capture_moment_screen.dart';
 import '../features/capture/capture_result_screen.dart';
 import '../features/capture/share_moment_card.dart';
+import '../features/settings/perf_debug_screen.dart';
+import '../features/settings/settings_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -78,6 +80,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/capture-result',
         name: 'capture-result',
         builder: (context, state) => const CaptureResultScreen(),
+      ),
+      GoRoute(
+        path: '/settings',
+        name: 'settings',
+        builder: (context, state) => const SettingsScreen(),
+        routes: [
+          GoRoute(
+            path: 'perf',
+            name: 'perf-debug',
+            builder: (context, state) => const PerfDebugScreen(),
+          ),
+        ],
       ),
       GoRoute(
         path: '/join/:code',

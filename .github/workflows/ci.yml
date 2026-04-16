@@ -156,15 +156,34 @@ jobs:
           name: android-apk
           path: build/app/outputs/flutter-apk/
       - name: Write Firebase service account credentials
-        run: echo "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 }}" | base64 -d > "${RUNNER_TEMP}/firebase-service-account.json"
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FIREBASE_SERVICE_ACCOUNT_JSON_BASE64:-}" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 secret is not set. Firebase App Distribution requires a base64-encoded service account JSON." >&2
+            exit 1
+          fi
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON_BASE64" | base64 -d > firebase-service-account.json
+          if ! head -c 1 firebase-service-account.json | grep -q '{'; then
+            echo "::error::Decoded FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 is not valid JSON. Verify the secret was base64-encoded from a service-account key file." >&2
+            exit 1
+          fi
+          if ! grep -q '"type"[[:space:]]*:[[:space:]]*"service_account"' firebase-service-account.json; then
+            echo "::error::Decoded credentials file is JSON but not a Google service-account key (missing \"type\": \"service_account\")." >&2
+            exit 1
+          fi
       - name: Upload to Firebase App Distribution
         uses: wzieba/Firebase-Distribution-Github-Action@v1
         with:
           appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
-          serviceCredentialsFile: ${{ runner.temp }}/firebase-service-account.json
+          serviceCredentialsFile: firebase-service-account.json
           groups: ${{ vars.FIREBASE_TESTER_GROUPS || 'internal-testers' }}
           file: build/app/outputs/flutter-apk/app-release.apk
           releaseNotes: |
             Commit: ${{ github.sha }}
             Branch: ${{ github.ref_name }}
             Actor: ${{ github.actor }}
+      - name: Remove Firebase service account credentials
+        if: always()
+        run: rm -f firebase-service-account.json

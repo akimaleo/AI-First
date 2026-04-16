@@ -70,11 +70,8 @@ class WaitingRoomScreen extends ConsumerWidget {
                         const SizedBox(width: 12),
                         FilledButton.icon(
                           onPressed: () {
-                            SharePlus.instance.share(
-                              ShareParams(
-                                text:
-                                    'Join my Sync or Sink challenge! Code: ${mp.inviteCode}\n\nsyncorsink://join/${mp.inviteCode}',
-                              ),
+                            Share.share(
+                              'Join my Sync or Sink challenge! Code: ${mp.inviteCode}\n\nsyncorsink://join/${mp.inviteCode}',
                             );
                           },
                           icon: const Icon(Icons.share),

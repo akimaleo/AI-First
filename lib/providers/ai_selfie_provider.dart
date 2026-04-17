@@ -6,10 +6,9 @@ import '../shared/models/ai_selfie.dart';
 import '../shared/services/ai_selfie_service.dart';
 import '../shared/services/replicate_selfie_pipeline_service.dart';
 import '../shared/services/selfie_pipeline_service.dart';
-import 'supabase_provider.dart';
 
 final aiSelfieServiceProvider = Provider<AiSelfieService>((ref) {
-  return AiSelfieService(ref.watch(supabaseClientProvider));
+  return AiSelfieService();
 });
 
 final replicateSelfiePipelineServiceProvider =

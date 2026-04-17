@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../shared/models/challenge.dart';
-import '../shared/services/supabase_service.dart';
-import 'supabase_provider.dart';
+import '../shared/services/firestore_service.dart';
+import 'firestore_provider.dart';
 
 enum SoloPhase { loading, playing, completed, error }
 
@@ -76,11 +76,11 @@ class SoloGameState {
 }
 
 class SoloGameNotifier extends Notifier<SoloGameState> {
-  late SupabaseService _service;
+  late FirestoreService _service;
 
   @override
   SoloGameState build() {
-    _service = ref.watch(supabaseServiceProvider);
+    _service = ref.watch(firestoreServiceProvider);
     return const SoloGameState();
   }
 

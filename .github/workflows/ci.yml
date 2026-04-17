@@ -78,8 +78,6 @@ jobs:
         run: |
           set -o pipefail
           flutter build apk --release --verbose \
-            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
-            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
             2>&1 | tee build-apk.log
       - name: Surface build log on failure
         if: always() && steps.build_apk.outcome == 'failure'

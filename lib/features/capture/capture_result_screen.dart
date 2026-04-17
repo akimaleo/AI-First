@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../providers/camera_provider.dart';
-import '../../providers/supabase_provider.dart';
+import '../../providers/firestore_provider.dart';
 import '../../shared/services/perf_instrumentation.dart';
 import '../../shared/services/share_card_renderer.dart';
 import '../../shared/services/share_links.dart';
@@ -41,7 +41,7 @@ class _CaptureResultScreenState extends ConsumerState<CaptureResultScreen> {
     final card = ref.read(lastShareCardProvider);
     if (card == null || card.author != null) return;
     try {
-      final profile = await ref.read(supabaseServiceProvider).getMyProfile();
+      final profile = await ref.read(firestoreServiceProvider).getMyProfile();
       if (profile == null || !mounted) return;
       ref.read(lastShareCardProvider.notifier).state = card.copyWith(
         author: ShareAuthor(

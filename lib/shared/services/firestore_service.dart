@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -5,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/challenge.dart';
 import '../models/game_session.dart';
+import '../models/leaderboard_entry.dart';
 import '../models/score.dart';
 
 // Firestore-backed data service for GUSAA-50 Phase 3. Collection layout mirrors
@@ -360,5 +362,297 @@ class FirestoreService {
       );
     }).toList()
       ..sort((a, b) => b.totalPoints.compareTo(a.totalPoints));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Follows
+  // ---------------------------------------------------------------------------
+
+  CollectionReference<Map<String, dynamic>> _follows() =>
+      _db.collection('follows');
+
+  Future<void> followUser(String targetUserId) async {
+    final userId = currentUserId;
+    if (userId == null) throw Exception('Not authenticated');
+    if (userId == targetUserId) return;
+    final docId = '${userId}_$targetUserId';
+    await _follows().doc(docId).set({
+      'follower_id': userId,
+      'followee_id': targetUserId,
+      'created_at': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> unfollowUser(String targetUserId) async {
+    final userId = currentUserId;
+    if (userId == null) return;
+    final docId = '${userId}_$targetUserId';
+    await _follows().doc(docId).delete();
+  }
+
+  Future<List<LeaderboardEntry>> listFollowing(String userId) async {
+    final snap = await _follows()
+        .where('follower_id', isEqualTo: userId)
+        .get();
+    if (snap.docs.isEmpty) return const [];
+
+    final followeeIds = snap.docs
+        .map((d) => d.data()['followee_id'] as String)
+        .toList();
+    final userDocs = await Future.wait(
+      followeeIds.map((id) => _db.collection('users').doc(id).get()),
+    );
+    return userDocs
+        .where((d) => d.exists)
+        .map((d) {
+          final data = Map<String, dynamic>.from(d.data() ?? {})
+            ..['id'] = d.id;
+          return LeaderboardEntry.fromJson(data);
+        })
+        .toList();
+  }
+
+  Future<List<LeaderboardEntry>> listFollowers(String userId) async {
+    final snap = await _follows()
+        .where('followee_id', isEqualTo: userId)
+        .get();
+    if (snap.docs.isEmpty) return const [];
+
+    final followerIds = snap.docs
+        .map((d) => d.data()['follower_id'] as String)
+        .toList();
+    final userDocs = await Future.wait(
+      followerIds.map((id) => _db.collection('users').doc(id).get()),
+    );
+    return userDocs
+        .where((d) => d.exists)
+        .map((d) {
+          final data = Map<String, dynamic>.from(d.data() ?? {})
+            ..['id'] = d.id;
+          return LeaderboardEntry.fromJson(data);
+        })
+        .toList();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Leaderboard / profile / history / search  (plan B: client-side queries)
+  // ---------------------------------------------------------------------------
+
+  Future<List<LeaderboardEntry>> getGlobalLeaderboard({int limit = 50}) async {
+    final snap = await _db.collection('users')
+        .orderBy('total_score', descending: true)
+        .limit(limit)
+        .get();
+    return snap.docs.map((d) {
+      final data = Map<String, dynamic>.from(d.data())..['id'] = d.id;
+      return LeaderboardEntry.fromJson(data);
+    }).toList();
+  }
+
+  Future<List<LeaderboardEntry>> getFriendsLeaderboard(
+      {int limit = 50}) async {
+    final userId = currentUserId;
+    if (userId == null) return const [];
+
+    final followSnap = await _follows()
+        .where('follower_id', isEqualTo: userId)
+        .get();
+    if (followSnap.docs.isEmpty) return const [];
+
+    final followeeIds = followSnap.docs
+        .map((d) => d.data()['followee_id'] as String)
+        .toList();
+    final userDocs = await Future.wait(
+      followeeIds.map((id) => _db.collection('users').doc(id).get()),
+    );
+    final entries = userDocs
+        .where((d) => d.exists)
+        .map((d) {
+          final data = Map<String, dynamic>.from(d.data() ?? {})
+            ..['id'] = d.id;
+          return LeaderboardEntry.fromJson(data);
+        })
+        .toList()
+      ..sort((a, b) => b.totalScore.compareTo(a.totalScore));
+    return entries.take(limit).toList();
+  }
+
+  Future<UserProfile?> getUserProfile(String userId) async {
+    final doc = await _db.collection('users').doc(userId).get();
+    if (!doc.exists) return null;
+
+    final data = Map<String, dynamic>.from(doc.data() ?? {})
+      ..['user_id'] = doc.id;
+
+    final followersSnap = await _follows()
+        .where('followee_id', isEqualTo: userId)
+        .count()
+        .get();
+    final followingSnap = await _follows()
+        .where('follower_id', isEqualTo: userId)
+        .count()
+        .get();
+
+    data['followers_count'] = followersSnap.count ?? 0;
+    data['following_count'] = followingSnap.count ?? 0;
+
+    final myId = currentUserId;
+    if (myId != null && myId != userId) {
+      final followDoc = await _follows().doc('${myId}_$userId').get();
+      data['is_following'] = followDoc.exists;
+    } else {
+      data['is_following'] = false;
+    }
+
+    return UserProfile.fromJson(data);
+  }
+
+  Future<UserProfile?> getMyProfile() async {
+    final userId = currentUserId;
+    if (userId == null) return null;
+    return getUserProfile(userId);
+  }
+
+  Future<List<HistoryEntry>> getUserHistory(
+    String userId, {
+    int limit = 25,
+  }) async {
+    // Get sessions where the user participated.
+    final participantSnap = await _db.collectionGroup('participants')
+        .where('user_id', isEqualTo: userId)
+        .limit(limit * 2)
+        .get();
+
+    final sessionIds = participantSnap.docs
+        .map((d) => d.reference.parent.parent?.id)
+        .where((id) => id != null)
+        .cast<String>()
+        .toSet()
+        .toList();
+    if (sessionIds.isEmpty) return const [];
+
+    final sessionDocs = await Future.wait(
+      sessionIds.map((id) => _sessions().doc(id).get()),
+    );
+
+    final entries = <HistoryEntry>[];
+    for (final sDoc in sessionDocs) {
+      if (!sDoc.exists) continue;
+      final sData = sDoc.data() ?? {};
+      if (sData['status'] != 'completed') continue;
+
+      final scoresSnap = await _scores(sDoc.id).get();
+      final allScores = scoresSnap.docs.map((d) => d.data()).toList();
+
+      final userPoints = allScores
+          .where((s) => s['user_id'] == userId)
+          .fold<int>(0, (acc, s) => acc + ((s['points_earned'] as num?)?.toInt() ?? 0));
+
+      final playerTotals = <String, int>{};
+      for (final s in allScores) {
+        final pid = s['user_id'] as String;
+        playerTotals[pid] = (playerTotals[pid] ?? 0) +
+            ((s['points_earned'] as num?)?.toInt() ?? 0);
+      }
+      final sorted = playerTotals.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      final rank = sorted.indexWhere((e) => e.key == userId) + 1;
+
+      entries.add(HistoryEntry.fromJson({
+        'session_id': sDoc.id,
+        'mode': sData['mode'] ?? 'versus',
+        'status': sData['status'] ?? 'completed',
+        'completed_at': sData['completed_at'],
+        'total_rounds': sData['total_rounds'] ?? 0,
+        'user_points': userPoints,
+        'user_rank': rank > 0 ? rank : 1,
+        'player_count': playerTotals.length,
+        'won': rank == 1,
+      }));
+    }
+
+    entries.sort((a, b) => (b.completedAt ?? DateTime(0))
+        .compareTo(a.completedAt ?? DateTime(0)));
+    return entries.take(limit).toList();
+  }
+
+  Future<List<UserSearchResult>> searchUsers(String term,
+      {int limit = 20}) async {
+    final trimmed = term.trim();
+    if (trimmed.isEmpty) return const [];
+    final lower = trimmed.toLowerCase();
+
+    // Firestore prefix range query on username.
+    final end = '$lower\uf8ff';
+    final snap = await _db.collection('users')
+        .where('username', isGreaterThanOrEqualTo: lower)
+        .where('username', isLessThanOrEqualTo: end)
+        .limit(limit)
+        .get();
+
+    final myId = currentUserId;
+    Set<String>? followees;
+    if (myId != null) {
+      final followSnap = await _follows()
+          .where('follower_id', isEqualTo: myId)
+          .get();
+      followees = followSnap.docs
+          .map((d) => d.data()['followee_id'] as String)
+          .toSet();
+    }
+
+    return snap.docs.map((d) {
+      final data = Map<String, dynamic>.from(d.data())
+        ..['user_id'] = d.id
+        ..['is_following'] = followees?.contains(d.id) ?? false;
+      return UserSearchResult.fromJson(data);
+    }).toList();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Realtime subscriptions via Firestore snapshots
+  // ---------------------------------------------------------------------------
+
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>
+      subscribeToSession(
+    String sessionId, {
+    required void Function(Map<String, dynamic> payload) onSessionChange,
+  }) {
+    return _sessions().doc(sessionId).snapshots().listen((snap) {
+      if (snap.exists) {
+        final data = Map<String, dynamic>.from(snap.data() ?? {})
+          ..['id'] = snap.id;
+        onSessionChange(data);
+      }
+    });
+  }
+
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>
+      subscribeToParticipants(
+    String sessionId, {
+    required void Function() onParticipantChange,
+  }) {
+    return _participants(sessionId).snapshots().listen((_) {
+      onParticipantChange();
+    });
+  }
+
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>> subscribeToScores(
+    String sessionId, {
+    required void Function(Map<String, dynamic> payload) onScoreInserted,
+  }) {
+    // Track already-seen score doc IDs to emit only new ones.
+    final seen = <String>{};
+    return _scores(sessionId).snapshots().listen((snap) {
+      for (final change in snap.docChanges) {
+        if (change.type == DocumentChangeType.added &&
+            !seen.contains(change.doc.id)) {
+          seen.add(change.doc.id);
+          final data = Map<String, dynamic>.from(change.doc.data() ?? {})
+            ..['id'] = change.doc.id;
+          onScoreInserted(data);
+        }
+      }
+    });
   }
 }

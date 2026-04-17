@@ -1,12 +1,13 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../shared/models/challenge.dart';
 import '../shared/models/game_session.dart';
 import '../shared/models/score.dart';
-import '../shared/services/supabase_service.dart';
-import 'supabase_provider.dart';
+import '../shared/services/firestore_service.dart';
+import 'firestore_provider.dart';
 
 enum MultiplayerPhase {
   idle,
@@ -90,22 +91,22 @@ class MultiplayerState {
 }
 
 class MultiplayerNotifier extends Notifier<MultiplayerState> {
-  late SupabaseService _service;
-  RealtimeChannel? _sessionChannel;
-  RealtimeChannel? _participantChannel;
-  RealtimeChannel? _scoreChannel;
+  late FirestoreService _service;
+  StreamSubscription<Object?>? _sessionSub;
+  StreamSubscription<Object?>? _participantSub;
+  StreamSubscription<Object?>? _scoreSub;
 
   @override
   MultiplayerState build() {
-    _service = ref.watch(supabaseServiceProvider);
+    _service = ref.watch(firestoreServiceProvider);
     ref.onDispose(_cleanup);
     return const MultiplayerState();
   }
 
   void _cleanup() {
-    if (_sessionChannel != null) _service.unsubscribe(_sessionChannel!);
-    if (_participantChannel != null) _service.unsubscribe(_participantChannel!);
-    if (_scoreChannel != null) _service.unsubscribe(_scoreChannel!);
+    _sessionSub?.cancel();
+    _participantSub?.cancel();
+    _scoreSub?.cancel();
   }
 
   Future<void> createSession() async {
@@ -201,15 +202,15 @@ class MultiplayerNotifier extends Notifier<MultiplayerState> {
   }
 
   void _subscribeToSession(String sessionId) {
-    _sessionChannel = _service.subscribeToSession(
+    _sessionSub = _service.subscribeToSession(
       sessionId,
       onSessionChange: _handleSessionChange,
     );
-    _participantChannel = _service.subscribeToParticipants(
+    _participantSub = _service.subscribeToParticipants(
       sessionId,
       onParticipantChange: _refreshParticipants,
     );
-    _scoreChannel = _service.subscribeToScores(
+    _scoreSub = _service.subscribeToScores(
       sessionId,
       onScoreInserted: _handleScoreInserted,
     );

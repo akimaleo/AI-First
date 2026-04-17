@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../shared/models/leaderboard_entry.dart';
-import 'supabase_provider.dart';
+import 'firestore_provider.dart';
 
 enum LeaderboardScope { global, friends }
 
@@ -10,7 +10,7 @@ final leaderboardScopeProvider =
 
 final leaderboardProvider =
     FutureProvider.autoDispose<List<LeaderboardEntry>>((ref) async {
-  final service = ref.watch(supabaseServiceProvider);
+  final service = ref.watch(firestoreServiceProvider);
   final scope = ref.watch(leaderboardScopeProvider);
   return switch (scope) {
     LeaderboardScope.global => service.getGlobalLeaderboard(),
@@ -20,14 +20,14 @@ final leaderboardProvider =
 
 final myProfileProvider =
     FutureProvider.autoDispose<UserProfile?>((ref) async {
-  final service = ref.watch(supabaseServiceProvider);
+  final service = ref.watch(firestoreServiceProvider);
   return service.getMyProfile();
 });
 
 final userProfileProvider =
     FutureProvider.autoDispose.family<UserProfile?, String>(
   (ref, userId) async {
-    final service = ref.watch(supabaseServiceProvider);
+    final service = ref.watch(firestoreServiceProvider);
     return service.getUserProfile(userId);
   },
 );
@@ -35,7 +35,7 @@ final userProfileProvider =
 final userHistoryProvider =
     FutureProvider.autoDispose.family<List<HistoryEntry>, String>(
   (ref, userId) async {
-    final service = ref.watch(supabaseServiceProvider);
+    final service = ref.watch(firestoreServiceProvider);
     return service.getUserHistory(userId);
   },
 );
@@ -43,7 +43,7 @@ final userHistoryProvider =
 final followingListProvider =
     FutureProvider.autoDispose.family<List<LeaderboardEntry>, String>(
   (ref, userId) async {
-    final service = ref.watch(supabaseServiceProvider);
+    final service = ref.watch(firestoreServiceProvider);
     return service.listFollowing(userId);
   },
 );
@@ -51,7 +51,7 @@ final followingListProvider =
 final followersListProvider =
     FutureProvider.autoDispose.family<List<LeaderboardEntry>, String>(
   (ref, userId) async {
-    final service = ref.watch(supabaseServiceProvider);
+    final service = ref.watch(firestoreServiceProvider);
     return service.listFollowers(userId);
   },
 );
@@ -69,12 +69,12 @@ class UserSearchController
     }
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref.read(supabaseServiceProvider).searchUsers(trimmed),
+      () => ref.read(firestoreServiceProvider).searchUsers(trimmed),
     );
   }
 
   Future<void> toggleFollow(UserSearchResult user) async {
-    final service = ref.read(supabaseServiceProvider);
+    final service = ref.read(firestoreServiceProvider);
     final current = state.valueOrNull;
     if (current == null) return;
 
@@ -113,7 +113,7 @@ class FollowController extends AutoDisposeAsyncNotifier<void> {
   Future<void> follow(String userId) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref.read(supabaseServiceProvider).followUser(userId),
+      () => ref.read(firestoreServiceProvider).followUser(userId),
     );
     _invalidate(userId);
   }
@@ -121,7 +121,7 @@ class FollowController extends AutoDisposeAsyncNotifier<void> {
   Future<void> unfollow(String userId) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref.read(supabaseServiceProvider).unfollowUser(userId),
+      () => ref.read(firestoreServiceProvider).unfollowUser(userId),
     );
     _invalidate(userId);
   }

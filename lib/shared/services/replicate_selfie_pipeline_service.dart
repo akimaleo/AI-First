@@ -5,8 +5,8 @@ import '../models/ai_selfie.dart';
 import 'ai_selfie_service.dart';
 import 'selfie_pipeline_service.dart';
 
-/// Concrete [SelfiePipelineService] backed by the Supabase `selfie-transform`
-/// edge function (Replicate under the hood).
+/// Concrete [SelfiePipelineService] backed by [AiSelfieService]
+/// (Replicate under the hood; previously a Supabase edge function).
 ///
 /// The [prompt] parameter accepts either:
 /// - a known [AiSelfiePromptKeys] key (e.g. `third_eye`)

@@ -4,20 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'shared/services/perf_instrumentation.dart';
 import 'shared/services/sentry_service.dart';
-
-const _supabaseUrl = String.fromEnvironment(
-  'SUPABASE_URL',
-  defaultValue: 'http://localhost:54321',
-);
-const _supabaseAnonKey = String.fromEnvironment(
-  'SUPABASE_ANON_KEY',
-  defaultValue: '',
-);
 
 Future<void> main() async {
   // Stamp the start of process boot before any heavy work — paired with
@@ -26,16 +16,10 @@ Future<void> main() async {
   PerfInstrumentation.markAppStart();
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Supabase.initialize(
-    url: _supabaseUrl,
-    anonKey: _supabaseAnonKey,
-  );
-
-  // Phase 1 of the Supabase -> Firebase migration (GUSAA-50): wire Firebase
-  // alongside Supabase. Native config comes from
-  // android/app/google-services.json (gitignored; written by CI from the
-  // GOOGLE_SERVICES_JSON_BASE64 secret). If the file is absent — common during
-  // local dev — swallow the init failure so the app still boots on Supabase.
+  // Firebase is the sole backend after the GUSAA-50 Supabase removal. Native
+  // config comes from android/app/google-services.json (gitignored; written by
+  // CI from the GOOGLE_SERVICES_JSON_BASE64 secret). If the file is absent on
+  // a dev machine the try/catch keeps the app bootable for UI-only work.
   var firebaseReady = false;
   try {
     await Firebase.initializeApp();
@@ -47,10 +31,8 @@ Future<void> main() async {
     }
   }
 
-  // Phase 2 of GUSAA-50: establish an anonymous Firebase session so every
-  // client has a stable uid. Board owner chose anonymous-only auth for the
-  // MVP. Only attempt when Firebase initialized — without the native config
-  // FirebaseAuth would throw on sign-in too.
+  // Anonymous auth — every client gets a stable uid. Board owner chose
+  // anonymous-only auth for the MVP.
   if (firebaseReady && FirebaseAuth.instance.currentUser == null) {
     try {
       await FirebaseAuth.instance.signInAnonymously();

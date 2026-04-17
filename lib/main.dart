@@ -54,7 +54,9 @@ Future<void> main() async {
         FirebaseFirestore.instance,
         FirebaseAuth.instance,
       );
-      await service.seedChallengesIfEmpty();
+      await service
+          .seedChallengesIfEmpty()
+          .timeout(const Duration(seconds: 10));
     } catch (error, stackTrace) {
       if (kDebugMode) {
         debugPrint('Challenge seeding failed: $error');

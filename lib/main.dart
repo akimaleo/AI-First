@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'app.dart';
+import 'shared/services/firestore_service.dart';
 import 'shared/services/perf_instrumentation.dart';
 import 'shared/services/sentry_service.dart';
 
@@ -39,6 +41,23 @@ Future<void> main() async {
     } catch (error, stackTrace) {
       if (kDebugMode) {
         debugPrint('FirebaseAuth.signInAnonymously() failed: $error');
+        debugPrintStack(stackTrace: stackTrace);
+      }
+    }
+  }
+
+  // Seed the challenges collection on first run so the game is playable
+  // immediately without manual Firestore console work.
+  if (firebaseReady) {
+    try {
+      final service = FirestoreService(
+        FirebaseFirestore.instance,
+        FirebaseAuth.instance,
+      );
+      await service.seedChallengesIfEmpty();
+    } catch (error, stackTrace) {
+      if (kDebugMode) {
+        debugPrint('Challenge seeding failed: $error');
         debugPrintStack(stackTrace: stackTrace);
       }
     }

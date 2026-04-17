@@ -43,10 +43,13 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    // Challenges are curated; the app only reads them. Admin SDK writes.
+    // Challenges — readable by any signed-in user; create-only for seeding on
+    // first launch (the app batch-writes default challenges when the collection
+    // is empty). No update/delete so clients cannot tamper with existing data.
     match /challenges/{challengeId} {
       allow read: if isSignedIn();
-      allow write: if false;
+      allow create: if isSignedIn();
+      allow update, delete: if false;
     }
 
     // Sessions and their subcollections.

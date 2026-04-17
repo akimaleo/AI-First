@@ -84,30 +84,40 @@ class SoloGameNotifier extends Notifier<SoloGameState> {
     return const SoloGameState();
   }
 
+  static const _timeout = Duration(seconds: 15);
+
   Future<void> startGame() async {
     state = const SoloGameState(phase: SoloPhase.loading);
 
     try {
       const totalRounds = 10;
-      final challenges = await _service.getRandomChallenges(totalRounds);
+      final challenges = await _service
+          .getRandomChallenges(totalRounds)
+          .timeout(_timeout, onTimeout: () => const <Challenge>[]);
 
       if (challenges.length < totalRounds) {
         state = state.copyWith(
           phase: SoloPhase.error,
-          error: 'Not enough challenges available',
+          error: 'Not enough challenges available. '
+              'Make sure Firestore, Anonymous Auth, and security rules '
+              'are enabled in the Firebase console.',
         );
         return;
       }
 
-      final session = await _service.createSoloSession(totalRounds: totalRounds);
+      final session = await _service
+          .createSoloSession(totalRounds: totalRounds)
+          .timeout(_timeout);
 
       final roundIds = <String>[];
       for (var i = 0; i < challenges.length; i++) {
-        final roundId = await _service.createSoloRound(
-          sessionId: session.id,
-          challengeId: challenges[i].id,
-          roundNumber: i + 1,
-        );
+        final roundId = await _service
+            .createSoloRound(
+              sessionId: session.id,
+              challengeId: challenges[i].id,
+              roundNumber: i + 1,
+            )
+            .timeout(_timeout);
         roundIds.add(roundId);
       }
 
